@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { extractTextFromPDF, parseResumeWithGemini } from '@/lib/parser/resume-parser'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -10,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No resume file uploaded.' }, { status: 400 })
     }
 
-    if (!file.name.endsWith('.pdf')) {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
       return NextResponse.json(
         { error: 'Invalid file format. Please upload a PDF file.' },
         { status: 400 }
@@ -31,7 +33,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Parse text using Gemini AI (with heuristic fallback)
+    // Parse text using Gemini AI (with dynamic fallback)
     const parsedData = await parseResumeWithGemini(rawText)
 
     return NextResponse.json({

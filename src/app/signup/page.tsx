@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, ArrowRight, Mail, Lock, User, Loader2 } from 'lucide-react'
+import { Sparkles, ArrowRight, Mail, Lock, User, Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 function SignupFormContent() {
@@ -18,6 +18,7 @@ function SignupFormContent() {
   
   const [isLoading, setIsLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [successInfo, setSuccessInfo] = useState('')
 
   useEffect(() => {
     if (initialSlug && !slug) {
@@ -38,6 +39,7 @@ function SignupFormContent() {
 
     setIsLoading(true)
     setErrorMsg('')
+    setSuccessInfo('')
 
     try {
       const supabase = createClient()
@@ -62,7 +64,15 @@ function SignupFormContent() {
       localStorage.setItem('mfolio_user_slug', slug)
       localStorage.setItem('mfolio_user_name', fullName)
 
-      router.push(`/onboarding?slug=${slug}`)
+      if (data.session) {
+        // Instant login session created (Email confirmation disabled or auto-confirmed)
+        router.push(`/onboarding?slug=${slug}`)
+      } else {
+        // Email confirmation is required by Supabase project settings
+        setSuccessInfo(
+          'Account created successfully! If email confirmation is enabled in your Supabase project, check your email inbox to confirm, or turn off "Confirm email" in Supabase Auth settings for instant login.'
+        )
+      }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to create account. Please try again.')
     } finally {
@@ -90,96 +100,116 @@ function SignupFormContent() {
       </div>
 
       {errorMsg && (
-        <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs">
+        <div className="p-3.5 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs leading-relaxed">
           {errorMsg}
         </div>
       )}
 
-      <form onSubmit={handleSignup} className="space-y-4">
-        <div>
-          <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
-            Full Name
-          </label>
-          <div className="relative">
-            <User className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
-            <input
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Alex Morgan"
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
-            />
+      {successInfo && (
+        <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs space-y-2 leading-relaxed">
+          <div className="flex items-center gap-2 font-bold text-sm text-emerald-400">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Account Created!</span>
+          </div>
+          <p>{successInfo}</p>
+          <div className="pt-2">
+            <Link
+              href={`/onboarding?slug=${slug}`}
+              className="inline-block px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs"
+            >
+              Continue to Onboarding &rarr;
+            </Link>
           </div>
         </div>
+      )}
 
-        <div>
-          <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
-            Public Portfolio URL Slug
-          </label>
-          <div className="flex items-center rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 focus-within:border-blue-500">
-            <span className="text-slate-500 text-xs font-mono mr-1">mfolio.app/</span>
-            <input
-              type="text"
-              required
-              value={slug}
-              onChange={(e) => handleSlugChange(e.target.value)}
-              placeholder="alex-morgan"
-              className="w-full bg-transparent focus:outline-none text-white text-sm font-mono"
-            />
+      {!successInfo && (
+        <form onSubmit={handleSignup} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+              Full Name
+            </label>
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Alex Morgan"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
-            Email Address
-          </label>
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="alex@example.com"
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
-            />
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+              Public Portfolio URL Slug
+            </label>
+            <div className="flex items-center rounded-xl bg-slate-950 border border-slate-800 px-3 py-2.5 focus-within:border-blue-500">
+              <span className="text-slate-500 text-xs font-mono mr-1">mfolio.app/</span>
+              <input
+                type="text"
+                required
+                value={slug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                placeholder="alex-morgan"
+                className="w-full bg-transparent focus:outline-none text-white text-sm font-mono"
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
-            Password
-          </label>
-          <div className="relative">
-            <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
-            />
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+              Email Address
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="alex@example.com"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
           </div>
-        </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold text-white transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
-        >
-          {isLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <span>Sign Up & Claim URL</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
-        </button>
-      </form>
+          <div>
+            <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
+              <input
+                type="password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold text-white transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
+          >
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <span>Sign Up & Claim URL</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+        </form>
+      )}
 
       <div className="text-center text-xs text-slate-400 border-t border-slate-800/80 pt-4">
         Already have an account?{' '}

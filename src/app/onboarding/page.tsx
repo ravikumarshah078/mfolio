@@ -23,6 +23,9 @@ function OnboardingContent() {
   const [parsedData, setParsedData] = useState<any>(null)
   const [isCheckingSession, setIsCheckingSession] = useState(true)
 
+  const [isSaving, setIsSaving] = useState(false)
+  const [savingStatus, setSavingStatus] = useState('')
+
   // Auth Guard: Require active Supabase user session before allowing Onboarding
   useEffect(() => {
     async function checkAuth() {
@@ -77,10 +80,17 @@ function OnboardingContent() {
         body: formData,
       })
 
-      const json = await res.json()
+      const resText = await res.text()
+      let json: any
+      try {
+        json = JSON.parse(resText)
+      } catch (e) {
+        console.error('Server non-JSON response:', res.status, resText)
+        throw new Error(`Server returned HTTP ${res.status}: ${resText.slice(0, 150)}`)
+      }
 
       if (!res.ok) {
-        throw new Error(json.error || 'Failed to parse resume.')
+        throw new Error(json.error || `Resume parsing failed with status ${res.status}`)
       }
 
       setParsedData(json.data)
@@ -90,6 +100,7 @@ function OnboardingContent() {
       setParseStatus('Success! Structure extracted.')
       setStep(2)
     } catch (err: any) {
+      console.error('Parsing error details:', err)
       alert(err.message || 'Error parsing resume. You can still proceed and edit data manually.')
       setStep(2)
     } finally {
@@ -102,6 +113,9 @@ function OnboardingContent() {
       alert('Please fill in your name and URL slug.')
       return
     }
+
+    setIsSaving(true)
+    setSavingStatus('Saving your portfolio data to database & preparing dashboard...')
 
     try {
       const payload = {
@@ -120,6 +134,7 @@ function OnboardingContent() {
         education: parsedData?.education || [],
         skills: parsedData?.skills || [],
         projects: parsedData?.projects || [],
+        certifications: parsedData?.certifications || [],
       }
 
       const res = await fetch('/api/portfolio/save', {
@@ -128,7 +143,13 @@ function OnboardingContent() {
         body: JSON.stringify(payload),
       })
 
-      const json = await res.json()
+      const resText = await res.text()
+      let json: any
+      try {
+        json = JSON.parse(resText)
+      } catch (e) {
+        throw new Error(`Saving failed with HTTP ${res.status}`)
+      }
 
       if (!res.ok) {
         throw new Error(json.error || 'Failed to generate portfolio.')
@@ -137,9 +158,11 @@ function OnboardingContent() {
       localStorage.setItem('mfolio_current_slug', slug)
       localStorage.setItem('mfolio_current_data', JSON.stringify(payload))
 
+      setSavingStatus('Portfolio generated! Loading your dashboard...')
       router.push(`/dashboard?slug=${slug}`)
     } catch (err: any) {
       alert(err.message || 'Failed to save portfolio.')
+      setIsSaving(false)
     }
   }
 
@@ -192,7 +215,7 @@ function OnboardingContent() {
               />
               <label
                 htmlFor="resume-file-input"
-                className="cursor-pointer inline-block px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-medium text-white mb-2 transition-all"
+                className="cursor-pointer hover:cursor-pointer inline-block px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sm font-medium text-white mb-2 transition-all shadow-md active:scale-95"
               >
                 Choose PDF File
               </label>
@@ -216,10 +239,19 @@ function OnboardingContent() {
             <button
               onClick={handleUploadAndParse}
               disabled={!file || isParsing}
-              className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 font-semibold text-white transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
+              className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 font-semibold text-white transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed"
             >
-              {isParsing ? 'Processing Resume...' : 'Parse Resume & Pick Theme'}
-              <ArrowRight className="w-4 h-4" />
+              {isParsing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Processing Resume...</span>
+                </>
+              ) : (
+                <>
+                  <span>Parse Resume & Pick Theme</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
           </div>
         )}
@@ -236,9 +268,9 @@ function OnboardingContent() {
                 <div
                   key={theme.id}
                   onClick={() => setSelectedTheme(theme.id)}
-                  className={`cursor-pointer rounded-2xl p-5 border transition-all text-left flex flex-col justify-between ${
+                  className={`cursor-pointer hover:cursor-pointer rounded-2xl p-5 border transition-all text-left flex flex-col justify-between active:scale-[0.99] ${
                     selectedTheme === theme.id
-                      ? 'bg-blue-950/40 border-blue-500 shadow-lg shadow-blue-500/20'
+                      ? 'bg-blue-950/40 border-blue-500 shadow-lg shadow-blue-500/20 ring-1 ring-blue-500/50'
                       : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                   }`}
                 >
@@ -264,12 +296,32 @@ function OnboardingContent() {
               ))}
             </div>
 
+            {isSaving && (
+              <div className="p-4 rounded-xl bg-blue-950/70 border border-blue-800 text-blue-200 text-xs flex items-center gap-3 animate-pulse shadow-lg">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-400 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-white">Generating Portfolio...</p>
+                  <p className="text-slate-300">{savingStatus}</p>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handleFinalSubmit}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 font-bold text-white transition-all shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 text-base"
+              disabled={isSaving}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-60 font-bold text-white transition-all shadow-xl shadow-blue-500/25 flex items-center justify-center gap-2 text-base cursor-pointer hover:cursor-pointer disabled:cursor-not-allowed"
             >
-              <Sparkles className="w-5 h-5" />
-              <span>Generate Portfolio Now</span>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin text-white" />
+                  <span>Generating Your Portfolio & Saving Data...</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  <span>Generate Portfolio Now</span>
+                </>
+              )}
             </button>
           </div>
         )}

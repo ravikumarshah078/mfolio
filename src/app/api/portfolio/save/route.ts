@@ -1,10 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { slug, fullName, headline, bio, location, contactEmail, phone, website, availability, socialLinks, themeId, themeConfig, experiences, education, skills, projects } = body
+    const {
+      slug,
+      fullName,
+      headline,
+      bio,
+      location,
+      contactEmail,
+      phone,
+      website,
+      availability,
+      socialLinks,
+      themeId,
+      themeConfig,
+      experiences,
+      education,
+      skills,
+      projects,
+      certifications,
+    } = body
 
     if (!slug || !fullName) {
       return NextResponse.json(
@@ -15,23 +34,60 @@ export async function POST(request: NextRequest) {
 
     const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '')
 
-    // Upsert demo user for testing/MVP
-    const demoUser = await prisma.user.upsert({
-      where: { slug: cleanSlug },
-      update: {
-        name: fullName,
-      },
-      create: {
-        id: `user_${cleanSlug}_${Date.now()}`,
-        email: contactEmail || `${cleanSlug}@mfolio.app`,
-        name: fullName,
-        slug: cleanSlug,
+    // Check for active Supabase Auth user session
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
+    let userId: string
+    let userEmail: string
+
+    if (authUser) {
+      userId = authUser.id
+      userEmail = authUser.email || contactEmail || `${cleanSlug}@mfolio.app`
+    } else {
+      userEmail = contactEmail || `${cleanSlug}@mfolio.app`
+      const existingUserBySlug = await prisma.user.findUnique({ where: { slug: cleanSlug } })
+      userId = existingUserBySlug ? existingUserBySlug.id : `user_${cleanSlug}_${Date.now()}`
+    }
+
+    // Safely find existing User record by id, email, or slug
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: userId },
+          { email: userEmail },
+          { slug: cleanSlug },
+        ],
       },
     })
 
-    // Upsert Portfolio record
+    let dbUser: any
+
+    if (existingUser) {
+      dbUser = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: fullName,
+          slug: cleanSlug,
+          email: userEmail,
+        },
+      })
+    } else {
+      dbUser = await prisma.user.create({
+        data: {
+          id: userId,
+          email: userEmail,
+          name: fullName,
+          slug: cleanSlug,
+        },
+      })
+    }
+
+    // Upsert Portfolio record for dbUser
     const portfolio = await prisma.portfolio.upsert({
-      where: { userId: demoUser.id },
+      where: { userId: dbUser.id },
       update: {
         fullName,
         headline,
@@ -47,7 +103,7 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       },
       create: {
-        userId: demoUser.id,
+        userId: dbUser.id,
         fullName,
         headline,
         bio,
@@ -131,6 +187,22 @@ export async function POST(request: NextRequest) {
             liveUrl: proj.liveUrl || '',
             githubUrl: proj.githubUrl || '',
             order,
+          })),
+        })
+      }
+    }
+
+    // Update Certifications relation
+    if (Array.isArray(certifications)) {
+      await prisma.certification.deleteMany({ where: { portfolioId: portfolio.id } })
+      if (certifications.length > 0) {
+        await prisma.certification.createMany({
+          data: certifications.map((cert: any) => ({
+            portfolioId: portfolio.id,
+            title: cert.title || 'Certification',
+            issuer: cert.issuer || '',
+            issueDate: cert.issueDate || '',
+            credentialUrl: cert.credentialUrl || '',
           })),
         })
       }

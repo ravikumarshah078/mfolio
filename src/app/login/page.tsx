@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Sparkles, ArrowRight, Mail, Lock, Loader2 } from 'lucide-react'
+import { Sparkles, ArrowRight, Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -28,6 +28,11 @@ export default function LoginPage() {
       })
 
       if (error) {
+        if (error.message.toLowerCase().includes('email not confirmed')) {
+          throw new Error(
+            'Your email is not confirmed yet. Please check your email inbox to confirm, OR turn off "Confirm email" in Supabase Dashboard (Auth -> Authentication -> Email) for instant login.'
+          )
+        }
         throw new Error(error.message)
       }
 
@@ -56,8 +61,12 @@ export default function LoginPage() {
         </div>
 
         {errorMsg && (
-          <div className="p-3 rounded-xl bg-red-950/60 border border-red-800 text-red-300 text-xs">
-            {errorMsg}
+          <div className="p-4 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs leading-relaxed space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-red-400">
+              <AlertCircle className="w-4 h-4" />
+              <span>Login Error</span>
+            </div>
+            <p>{errorMsg}</p>
           </div>
         )}
 

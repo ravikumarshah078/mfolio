@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { ParsedResumeData } from './types'
 
-// Require the core lib directly to bypass pdf-parse's internal debug test file check
+// Require the core lib directly to bypass pdf-parse's top-level self-test file execution
 // @ts-ignore
 const pdfParse = require('pdf-parse/lib/pdf-parse.js')
 
@@ -24,73 +24,67 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 export async function parseResumeWithGemini(rawText: string): Promise<ParsedResumeData> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey || apiKey.trim() === '' || apiKey.includes('your-gemini')) {
-    console.warn('GEMINI_API_KEY is not set or placeholder. Falling back to heuristic regex parser.')
+    console.warn('GEMINI_API_KEY is not set or placeholder. Falling back to dynamic regex parser.')
     return parseResumeFallback(rawText)
   }
 
-  try {
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+  // Active Gemini models: gemini-2.5-flash is current primary
+  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-pro-latest', 'gemini-pro']
 
-    const prompt = `
-You are an expert resume parser and AI recruiter assistant.
-Analyze the following resume text carefully and extract all information into strict JSON format.
-
-JSON Schema format required:
+  const prompt = `
+You are an expert resume parser. Analyze this raw resume text carefully and extract ALL information into strict JSON matching this schema:
 {
-  "fullName": "Full Name of Candidate",
-  "headline": "Short Professional Title / Headline (e.g. Senior Full-Stack Engineer)",
-  "bio": "A compelling 2-3 sentence summary of candidate experience and background",
+  "fullName": "Full Name",
+  "headline": "Professional Title / Headline",
+  "bio": "Detailed summary of candidate experience and strengths",
   "location": "City, Country or Remote",
-  "contactEmail": "email address",
-  "phone": "phone number",
-  "website": "portfolio or personal website URL",
+  "contactEmail": "Email address",
+  "phone": "Phone number",
+  "website": "Portfolio website URL",
   "socialLinks": [
-    { "platform": "github | linkedin | twitter | portfolio | other", "url": "full url" }
+    { "platform": "github | linkedin | twitter | portfolio", "url": "Full profile URL" }
   ],
   "experiences": [
     {
       "company": "Company Name",
       "role": "Job Title",
       "location": "Location or Remote",
-      "startDate": "Month Year / Year",
-      "endDate": "Month Year / Present",
+      "startDate": "Start Date",
+      "endDate": "End Date",
       "current": true/false,
-      "description": "Short overview of role",
-      "highlights": ["Bullet point achievement 1", "Bullet point achievement 2"]
+      "description": "Short overview",
+      "highlights": ["Bullet accomplishment 1", "Bullet accomplishment 2"]
     }
   ],
   "education": [
     {
-      "institution": "University / Institution Name",
-      "degree": "Bachelor of Science in Computer Science",
-      "field": "Computer Science",
+      "institution": "University Name",
+      "degree": "Degree Name",
+      "field": "Field of Study",
       "startDate": "Year",
       "endDate": "Year",
-      "description": "Honors / GPA / Activities"
+      "description": "Details"
     }
   ],
   "skills": [
-    { "name": "Skill Name", "category": "Frontend | Backend | Languages | Cloud | Tools | Other", "proficiency": 90 }
+    { "name": "Skill Name", "category": "Frontend | Backend | Cloud | Languages | Databases | Tools", "proficiency": 90 }
   ],
   "projects": [
     {
       "title": "Project Name",
-      "description": "Short description of project",
-      "techStack": ["Next.js", "TypeScript", "Tailwind CSS"],
-      "liveUrl": "http...",
-      "githubUrl": "http..."
+      "description": "Project overview",
+      "techStack": ["Laravel", "Vue.js", "MySQL"],
+      "liveUrl": "",
+      "githubUrl": ""
     }
   ],
   "certifications": [
-    { "title": "Cert Name", "issuer": "AWS / Google / Meta", "issueDate": "2024", "credentialUrl": "" }
+    { "title": "Certification Name", "issuer": "Issuer", "issueDate": "" }
   ]
 }
 
 Strict Rules:
-1. Output ONLY valid raw JSON. No markdown codeblocks (no \`\`\`json), no introductory text.
-2. If a field is missing, use empty array [] or empty string "" or null.
-3. Ensure company names, dates, project links, and skill names are accurately parsed.
+- Output raw valid JSON ONLY. Do NOT wrap in markdown codeblocks (do NOT include \`\`\`json).
 
 Resume Text:
 ---
@@ -98,109 +92,177 @@ ${rawText}
 ---
 `
 
-    const result = await model.generateContent(prompt)
-    const responseText = result.response.text().trim()
+  const genAI = new GoogleGenerativeAI(apiKey)
 
-    // Clean potential markdown quotes
-    const cleanedJsonString = responseText
-      .replace(/^```json\s*/i, '')
-      .replace(/^```\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim()
+  for (const modelName of candidateModels) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          responseMimeType: 'application/json',
+        },
+      })
 
-    const parsedData: ParsedResumeData = JSON.parse(cleanedJsonString)
-    return sanitizeParsedData(parsedData)
-  } catch (error) {
-    console.error('Gemini API parsing failed, triggering fallback parser:', error)
-    return parseResumeFallback(rawText)
+      const result = await model.generateContent(prompt)
+      const responseText = result.response.text().trim()
+
+      const cleanedJsonString = responseText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim()
+
+      try {
+        const parsedData: ParsedResumeData = JSON.parse(cleanedJsonString)
+        console.log(`Successfully parsed resume using model: ${modelName}`)
+        return sanitizeParsedData(parsedData)
+      } catch (jsonErr) {
+        console.warn(`JSON parse error on response from ${modelName}:`, jsonErr)
+        const repairedJsonString = tryRepairJsonString(cleanedJsonString)
+        if (repairedJsonString) {
+          const repairedData: ParsedResumeData = JSON.parse(repairedJsonString)
+          return sanitizeParsedData(repairedData)
+        }
+      }
+    } catch (error: any) {
+      console.warn(`Model ${modelName} failed or unavailable: ${error?.message || error}, trying next model...`)
+    }
+  }
+
+  console.warn('Gemini AI parsing encountered error or incomplete JSON. Using dynamic fallback parser.')
+  return parseResumeFallback(rawText)
+}
+
+function tryRepairJsonString(jsonStr: string): string | null {
+  try {
+    let text = jsonStr.trim()
+    if (!text.endsWith('}')) {
+      if ((text.match(/"/g) || []).length % 2 !== 0) {
+        text += '"'
+      }
+      if (!text.endsWith(']}')) {
+        text += ']}'
+      }
+      if (!text.endsWith('}')) {
+        text += '}'
+      }
+    }
+    JSON.parse(text)
+    return text
+  } catch (e) {
+    return null
   }
 }
 
-/**
- * Heuristic Fallback Parser (runs offline / without API key)
- */
 export function parseResumeFallback(rawText: string): ParsedResumeData {
   const lines = rawText.split('\n').map((l) => l.trim()).filter(Boolean)
   
-  // Extract Email
   const emailRegex = /([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9._-]+)/i
   const emailMatch = rawText.match(emailRegex)
   const contactEmail = emailMatch ? emailMatch[1] : ''
 
-  // Extract Phone
   const phoneRegex = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/
   const phoneMatch = rawText.match(phoneRegex)
   const phone = phoneMatch ? phoneMatch[0] : ''
 
-  // Guess Name from first 3 non-empty lines
   let fullName = lines[0] || 'Portfolio User'
   if (fullName.includes('@') || fullName.length > 40) {
     fullName = lines[1] || 'Portfolio User'
   }
 
-  // Extract Socials
   const socialLinks: ParsedResumeData['socialLinks'] = []
-  if (rawText.includes('github.com')) {
-    const ghMatch = rawText.match(/https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9_-]+/i)
-    if (ghMatch) socialLinks.push({ platform: 'github', url: ghMatch[0] })
-  }
-  if (rawText.includes('linkedin.com')) {
-    const liMatch = rawText.match(/https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i)
-    if (liMatch) socialLinks.push({ platform: 'linkedin', url: liMatch[0] })
-  }
+  const ghMatch = rawText.match(/https?:\/\/(www\.)?github\.com\/[a-zA-Z0-9_-]+/i)
+  if (ghMatch) socialLinks.push({ platform: 'github', url: ghMatch[0] })
+  
+  const liMatch = rawText.match(/https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i)
+  if (liMatch) socialLinks.push({ platform: 'linkedin', url: liMatch[0] })
 
-  // Basic Skills Extraction
-  const commonSkills = [
-    'JavaScript', 'TypeScript', 'React', 'Next.js', 'Node.js', 'Python',
-    'HTML', 'CSS', 'Tailwind CSS', 'PostgreSQL', 'MongoDB', 'Git', 'Docker',
-    'AWS', 'REST API', 'GraphQL', 'SQL'
+  const skillKeywords = [
+    'JavaScript', 'TypeScript', 'React', 'Next.js', 'Vue', 'Angular', 'Node.js', 'Python', 'Java', 'C++',
+    'HTML', 'CSS', 'Tailwind CSS', 'Sass', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'GraphQL', 'REST API',
+    'Docker', 'Kubernetes', 'AWS', 'GCP', 'Azure', 'Git', 'CI/CD', 'Jest', 'Cypress', 'Figma', 'Laravel', 'CakePHP', 'NestJS'
   ]
+  
   const extractedSkills: ParsedResumeData['skills'] = []
-  commonSkills.forEach((skill) => {
-    if (new RegExp(`\\b${skill}\\b`, 'i').test(rawText)) {
+  skillKeywords.forEach((skill) => {
+    if (new RegExp(`\\b${skill.replace('+', '\\+')}\\b`, 'i').test(rawText)) {
       extractedSkills.push({
         name: skill,
-        category: ['JavaScript', 'TypeScript', 'React', 'Next.js', 'HTML', 'CSS', 'Tailwind CSS'].includes(skill)
+        category: ['JavaScript', 'TypeScript', 'React', 'Next.js', 'HTML', 'CSS', 'Tailwind CSS', 'Vue', 'Angular'].includes(skill)
           ? 'Frontend'
-          : ['Node.js', 'Python', 'PostgreSQL', 'MongoDB', 'GraphQL', 'SQL'].includes(skill)
+          : ['Node.js', 'Python', 'Java', 'C++', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'GraphQL', 'REST API', 'Laravel', 'CakePHP', 'NestJS'].includes(skill)
           ? 'Backend'
-          : 'Tools',
+          : 'Cloud & Tools',
         proficiency: 85,
       })
     }
   })
 
+  const experiences: ParsedResumeData['experiences'] = []
+  const expSectionMatch = rawText.match(/(?:EXPERIENCE|WORK HISTORY|EMPLOYMENT)[\s\S]*?(?=(?:EDUCATION|SKILLS|PROJECTS|CERTIFICATIONS)|$)/i)
+  
+  if (expSectionMatch) {
+    const expText = expSectionMatch[0]
+    const expLines = expText.split('\n').map((l) => l.trim()).filter(Boolean)
+    
+    let currentExp: any = null
+    expLines.forEach((line) => {
+      if (line.match(/(?:19|20)\d{2}/) || line.includes('Present')) {
+        if (currentExp) experiences.push(currentExp)
+        currentExp = {
+          company: 'Company',
+          role: line,
+          location: '',
+          startDate: '2022',
+          endDate: 'Present',
+          current: line.includes('Present'),
+          description: '',
+          highlights: [],
+        }
+      } else if (currentExp) {
+        if (line.startsWith('-') || line.startsWith('•')) {
+          currentExp.highlights.push(line.replace(/^[-•]\s*/, ''))
+        } else if (!currentExp.description) {
+          currentExp.description = line
+        }
+      }
+    })
+    if (currentExp) experiences.push(currentExp)
+  }
+
+  if (experiences.length === 0) {
+    experiences.push({
+      company: 'Software Company',
+      role: 'Software Engineer',
+      location: 'Remote',
+      startDate: '2022',
+      endDate: 'Present',
+      current: true,
+      description: 'Engineered web applications, REST APIs, and modern user interfaces.',
+      highlights: [
+        'Built responsive web interfaces and optimized backend services.',
+        'Collaborated with engineering teams to deliver core features.',
+      ],
+    })
+  }
+
   return {
     fullName,
-    headline: 'Software Engineer',
-    bio: 'Experienced software developer passionate about building modern web applications.',
+    headline: 'Software Professional',
+    bio: lines.slice(1, 4).join(' ') || 'Experienced software developer passionate about building modern applications.',
     location: '',
     contactEmail,
     phone,
     website: '',
     socialLinks,
-    experiences: [
-      {
-        company: 'Technology Solutions Inc.',
-        role: 'Software Engineer',
-        location: 'Remote',
-        startDate: '2022',
-        endDate: 'Present',
-        current: true,
-        description: 'Building modern web platforms and high-scale user experiences.',
-        highlights: [
-          'Engineered responsive user interfaces and backend services.',
-          'Collaborated with cross-functional teams to deliver key features.',
-        ],
-      },
-    ],
+    experiences,
     education: [
       {
         institution: 'University',
         degree: 'Bachelor of Science',
         field: 'Computer Science',
         startDate: '2018',
-        endDate: '2022',
+        endDate: '2021',
       },
     ],
     skills: extractedSkills.length > 0 ? extractedSkills : [
@@ -211,8 +273,8 @@ export function parseResumeFallback(rawText: string): ParsedResumeData {
     ],
     projects: [
       {
-        title: 'Public Portfolio Platform',
-        description: 'AI-powered portfolio generator transforming resumes into custom portfolio sites.',
+        title: 'Portfolio Application',
+        description: 'AI-powered resume-to-portfolio platform transforming PDF resumes into dynamic websites.',
         techStack: ['Next.js', 'TypeScript', 'Tailwind CSS', 'Supabase'],
       },
     ],
