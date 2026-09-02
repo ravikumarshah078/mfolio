@@ -32,10 +32,12 @@ export async function parseResumeWithGemini(rawText: string): Promise<ParsedResu
   const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-pro-latest', 'gemini-pro']
 
   const prompt = `
-You are an expert resume parser. Analyze this raw resume text carefully and extract ALL information into strict JSON matching this schema:
+You are an elite, highly intelligent AI resume parser.
+Analyze the following raw resume text carefully and extract ALL information into strict JSON matching this schema:
+
 {
   "fullName": "Full Name",
-  "headline": "Professional Title / Headline",
+  "headline": "Professional Title / Short Headline",
   "bio": "Detailed summary of candidate experience and strengths",
   "location": "City, Country or Remote",
   "contactEmail": "Email address",
@@ -80,11 +82,19 @@ You are an expert resume parser. Analyze this raw resume text carefully and extr
   ],
   "certifications": [
     { "title": "Certification Name", "issuer": "Issuer", "issueDate": "" }
+  ],
+  "customSections": [
+    {
+      "title": "Languages | Achievements | Publications | Volunteer Work | Any Other Section",
+      "content": ["Item 1 or Bullet 1", "Item 2 or Bullet 2"]
+    }
   ]
 }
 
-Strict Rules:
-- Output raw valid JSON ONLY. Do NOT wrap in markdown codeblocks (do NOT include \`\`\`json).
+CRITICAL DYNAMIC RULES:
+1. Standard sections (Experience, Education, Skills, Projects, Certifications) go to their respective arrays.
+2. ANY additional section in the resume (such as "Languages Spoken", "Key Achievements", "Publications", "Volunteer Work", "Patents", "Interests", etc.) MUST be captured into the "customSections" array.
+3. Return raw valid JSON ONLY. Do NOT wrap in markdown codeblocks.
 
 Resume Text:
 ---
@@ -278,6 +288,7 @@ export function parseResumeFallback(rawText: string): ParsedResumeData {
         techStack: ['Next.js', 'TypeScript', 'Tailwind CSS', 'Supabase'],
       },
     ],
+    customSections: [],
   }
 }
 
@@ -310,5 +321,6 @@ function sanitizeParsedData(data: ParsedResumeData): ParsedResumeData {
         }))
       : [],
     certifications: Array.isArray(data.certifications) ? data.certifications : [],
+    customSections: Array.isArray(data.customSections) ? data.customSections : [],
   }
 }

@@ -4,6 +4,8 @@ import { MinimalTheme } from './MinimalTheme'
 import { CreativeTheme } from './CreativeTheme'
 import { ExecutiveTheme } from './ExecutiveTheme'
 import { TerminalTheme } from './TerminalTheme'
+import { ModernDarkTheme } from './ModernDarkTheme'
+import { CompactPaperTheme } from './CompactPaperTheme'
 
 export interface ThemeDefinition {
   id: string
@@ -52,6 +54,22 @@ export const themeRegistry: Record<string, ThemeDefinition> = {
     accentColor: '#10b981',
     previewBadge: 'Tech',
     component: TerminalTheme,
+  },
+  'modern-dark': {
+    id: 'modern-dark',
+    name: 'Neo-Dark Glow',
+    description: 'Ultra-sleek dark theme with cyan neon accents and interactive cards.',
+    accentColor: '#06b6d4',
+    previewBadge: 'New',
+    component: ModernDarkTheme,
+  },
+  'compact-paper': {
+    id: 'compact-paper',
+    name: 'Editorial Newspaper',
+    description: 'High-contrast typography, editorial borders, and clean newspaper layout.',
+    accentColor: '#44403c',
+    previewBadge: 'Editorial',
+    component: CompactPaperTheme,
   },
 }
 

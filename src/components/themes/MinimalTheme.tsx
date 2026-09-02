@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { FullPortfolioData } from '@/types/portfolio'
-import { Globe, Mail, Phone, MapPin, ExternalLink } from 'lucide-react'
+import { Globe, Mail, Phone, MapPin, ExternalLink, Layers } from 'lucide-react'
 
 export function MinimalTheme({ portfolio }: { portfolio: FullPortfolioData }) {
   const accentColor = portfolio.themeConfig?.primaryColor || '#2563eb'
@@ -239,6 +239,31 @@ export function MinimalTheme({ portfolio }: { portfolio: FullPortfolioData }) {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* Dynamic Custom Sections */}
+        {portfolio.customSections && portfolio.customSections.length > 0 && (
+          <section className="space-y-8">
+            {portfolio.customSections.map((sec, sIdx) => (
+              <div key={sIdx} className="space-y-4">
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                  <span className="w-2 h-6 rounded-full" style={{ backgroundColor: accentColor }} />
+                  {sec.title}
+                </h2>
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                  {Array.isArray(sec.content) ? (
+                    <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400 list-disc list-inside">
+                      {sec.content.map((item: any, iIdx: number) => (
+                        <li key={iIdx}>{typeof item === 'string' ? item : item.title || JSON.stringify(item)}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-600 dark:text-slate-400">{sec.content}</p>
+                  )}
+                </div>
+              </div>
+            ))}
           </section>
         )}
       </main>

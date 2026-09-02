@@ -44,6 +44,11 @@ export interface ParsedSocialLink {
   url: string
 }
 
+export interface ParsedCustomSection {
+  title: string
+  content: string[] | string
+}
+
 export interface ParsedResumeData {
   fullName: string
   headline?: string
@@ -58,4 +63,5 @@ export interface ParsedResumeData {
   skills: ParsedSkill[]
   projects: ParsedProject[]
   certifications?: ParsedCertification[]
+  customSections?: ParsedCustomSection[]
 }

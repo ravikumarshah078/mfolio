@@ -2,12 +2,10 @@
 
 import React from 'react'
 import { PortfolioThemeProps } from '@/types/portfolio'
-import { Mail, Phone, MapPin, Briefcase, GraduationCap, ExternalLink } from 'lucide-react'
+import { Mail, Phone, MapPin, Briefcase, GraduationCap, ExternalLink, Award } from 'lucide-react'
 import { SocialIcon } from '@/components/common/SocialIcons'
 
 export function ExecutiveTheme({ portfolio }: PortfolioThemeProps) {
-  const accentColor = portfolio.themeConfig?.primaryColor || '#0f172a'
-
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-serif">
       <div className="max-w-6xl mx-auto min-h-screen bg-white dark:bg-slate-950 border-x border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col md:flex-row">
@@ -180,6 +178,15 @@ export function ExecutiveTheme({ portfolio }: PortfolioThemeProps) {
                       )}
                     </div>
                     <p className="text-xs text-slate-600 dark:text-slate-400">{project.description}</p>
+                    {project.techStack && project.techStack.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-2">
+                        {project.techStack.map((tech, tIdx) => (
+                          <span key={tIdx} className="text-[10px] px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono">
+                            {tech}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -199,9 +206,34 @@ export function ExecutiveTheme({ portfolio }: PortfolioThemeProps) {
                   <div key={idx} className="flex justify-between items-baseline text-sm">
                     <div>
                       <span className="font-bold text-slate-900 dark:text-white">{edu.institution}</span>
-                      <span className="text-slate-500"> — {edu.degree}</span>
+                      <span className="text-slate-500"> — {edu.degree} {edu.field ? `in ${edu.field}` : ''}</span>
                     </div>
-                    <span className="text-xs text-slate-400">{edu.endDate}</span>
+                    <span className="text-xs text-slate-400">{edu.startDate} {edu.endDate ? `- ${edu.endDate}` : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Certifications & Honors */}
+          {portfolio.certifications && portfolio.certifications.length > 0 && (
+            <section className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                <Award className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                Certifications & Honors
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {portfolio.certifications.map((cert, idx) => (
+                  <div
+                    key={idx}
+                    className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex justify-between items-center"
+                  >
+                    <div>
+                      <h4 className="font-bold text-slate-900 dark:text-white text-sm">{cert.title}</h4>
+                      {cert.issuer && <p className="text-xs text-slate-500">{cert.issuer}</p>}
+                    </div>
+                    {cert.issueDate && <span className="text-xs text-slate-400 font-mono">{cert.issueDate}</span>}
                   </div>
                 ))}
               </div>

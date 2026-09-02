@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, Suspense } from 'react'
+import React, { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -28,6 +28,49 @@ import { themeRegistry } from '@/components/themes/theme-registry'
 import { ThemeRenderer } from '@/components/themes/ThemeRenderer'
 import { FullPortfolioData } from '@/types/portfolio'
 import { createClient } from '@/lib/supabase/client'
+
+// Auto-Expanding Textarea Component (Grows with content, zero internal scrollbar)
+function AutoExpandingTextarea({
+  value,
+  onChange,
+  placeholder,
+  minRows = 3,
+  className = '',
+}: {
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+  minRows?: number
+  className?: string
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const adjustHeight = () => {
+    const el = textareaRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = `${Math.max(el.scrollHeight, minRows * 24)}px`
+    }
+  }
+
+  useEffect(() => {
+    adjustHeight()
+  }, [value])
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value)
+        adjustHeight()
+      }}
+      placeholder={placeholder}
+      rows={minRows}
+      className={`w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none resize-none overflow-hidden transition-all ${className}`}
+    />
+  )
+}
 
 function DashboardContent() {
   const router = useRouter()
@@ -232,6 +275,7 @@ function DashboardContent() {
         skills: fresh.skills?.length ? fresh.skills : prev.skills,
         projects: fresh.projects?.length ? fresh.projects : prev.projects,
         certifications: fresh.certifications?.length ? fresh.certifications : prev.certifications,
+        customSections: fresh.customSections?.length ? fresh.customSections : prev.customSections,
       }))
 
       setReparseSuccessMsg('New resume parsed successfully! Review the updated data in the editor and click "Save Portfolio" to publish.')
@@ -387,7 +431,7 @@ function DashboardContent() {
             </button>
 
             {isThemeMenuOpen && (
-              <div className="absolute right-0 mt-2 w-60 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-2 z-50 space-y-1">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-2 z-50 space-y-1">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1 border-b border-slate-800/80 mb-1">
                   Select Theme Template
                 </div>
@@ -523,13 +567,13 @@ function DashboardContent() {
 
                 <div>
                   <label className="block text-xs font-semibold uppercase text-slate-400 mb-1">
-                    Bio Summary
+                    Bio Summary (Auto-Expanding Height)
                   </label>
-                  <textarea
-                    rows={4}
+                  <AutoExpandingTextarea
                     value={portfolio.bio || ''}
-                    onChange={(e) => setPortfolio({ ...portfolio, bio: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+                    onChange={(val) => setPortfolio({ ...portfolio, bio: val })}
+                    placeholder="Write your professional bio..."
+                    minRows={4}
                   />
                 </div>
 
@@ -628,11 +672,10 @@ function DashboardContent() {
 
                     <div>
                       <label className="block text-[10px] font-semibold uppercase text-slate-400">Overview / Highlights</label>
-                      <textarea
-                        rows={2}
+                      <AutoExpandingTextarea
                         value={exp.description || ''}
-                        onChange={(e) => updateExperience(idx, 'description', e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                        onChange={(val) => updateExperience(idx, 'description', val)}
+                        minRows={2}
                       />
                     </div>
                   </div>
@@ -675,11 +718,10 @@ function DashboardContent() {
 
                     <div>
                       <label className="block text-[10px] font-semibold uppercase text-slate-400">Description</label>
-                      <textarea
-                        rows={2}
+                      <AutoExpandingTextarea
                         value={project.description || ''}
-                        onChange={(e) => updateProject(idx, 'description', e.target.value)}
-                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                        onChange={(val) => updateProject(idx, 'description', val)}
+                        minRows={2}
                       />
                     </div>
                   </div>

@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react'
 import { PortfolioThemeProps } from '@/types/portfolio'
-import { Terminal, Copy, Check, ExternalLink, Mail, MapPin } from 'lucide-react'
-import { GithubIcon, SocialIcon } from '@/components/common/SocialIcons'
+import { Terminal, Copy, Check, ExternalLink, Mail, MapPin, Award, GraduationCap } from 'lucide-react'
+import { SocialIcon } from '@/components/common/SocialIcons'
 
 export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
   const [copied, setCopied] = useState(false)
-  const [activeTab, setActiveTab] = useState<'all' | 'exp' | 'projects' | 'skills'>('all')
+  const [activeTab, setActiveTab] = useState<'all' | 'exp' | 'projects' | 'skills' | 'edu' | 'certs'>('all')
 
   const copySlug = () => {
     navigator.clipboard.writeText(window.location.href)
@@ -33,7 +33,7 @@ export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
 
           <button
             onClick={copySlug}
-            className="text-xs text-neutral-400 hover:text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 border border-neutral-700 transition-colors"
+            className="text-xs text-neutral-400 hover:text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 border border-neutral-700 transition-colors cursor-pointer"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? 'Copied!' : 'Copy URL'}</span>
@@ -102,13 +102,13 @@ export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
           </div>
 
           {/* Filter Navigation */}
-          <div className="flex items-center gap-2 pt-4 border-t border-neutral-800">
+          <div className="flex items-center gap-2 pt-4 border-t border-neutral-800 flex-wrap">
             <span className="text-xs text-neutral-500 mr-2">Views:</span>
-            {(['all', 'exp', 'projects', 'skills'] as const).map((tab) => (
+            {(['all', 'exp', 'projects', 'skills', 'edu', 'certs'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 text-xs rounded uppercase font-bold transition-all ${
+                className={`px-3 py-1 text-xs rounded uppercase font-bold transition-all cursor-pointer ${
                   activeTab === tab
                     ? 'bg-emerald-500 text-neutral-950'
                     : 'bg-neutral-800 text-neutral-400 hover:text-white'
@@ -192,6 +192,46 @@ export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
                   <span key={idx} className="px-3 py-1 rounded bg-neutral-800 text-xs text-neutral-200">
                     {skill.name} <span className="text-neutral-500 text-[10px]">@latest</span>
                   </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Education */}
+          {(activeTab === 'all' || activeTab === 'edu') && portfolio.education.length > 0 && (
+            <div>
+              <p className="text-neutral-500 mb-3">
+                <span className="text-emerald-500">guest@mfolio</span>:<span className="text-blue-400">~</span>$ cat education.log
+              </p>
+              <div className="space-y-3">
+                {portfolio.education.map((edu, idx) => (
+                  <div key={idx} className="p-3 rounded bg-neutral-950/60 border border-neutral-800 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-bold text-white">{edu.institution}</span>
+                      <span className="text-neutral-400"> — {edu.degree} {edu.field ? `in ${edu.field}` : ''}</span>
+                    </div>
+                    <span className="text-neutral-500 font-mono">{edu.startDate} {edu.endDate ? `- ${edu.endDate}` : ''}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Certifications & Honors */}
+          {(activeTab === 'all' || activeTab === 'certs') && portfolio.certifications && portfolio.certifications.length > 0 && (
+            <div>
+              <p className="text-neutral-500 mb-3">
+                <span className="text-emerald-500">guest@mfolio</span>:<span className="text-blue-400">~</span>$ gpg --verify certifications.asc
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {portfolio.certifications.map((cert, idx) => (
+                  <div key={idx} className="p-3 rounded bg-neutral-950/60 border border-neutral-800 flex justify-between items-center text-xs">
+                    <div>
+                      <span className="font-bold text-emerald-400">{cert.title}</span>
+                      {cert.issuer && <p className="text-[11px] text-neutral-400">{cert.issuer}</p>}
+                    </div>
+                    {cert.issueDate && <span className="text-neutral-500 font-mono text-[10px]">{cert.issueDate}</span>}
+                  </div>
                 ))}
               </div>
             </div>

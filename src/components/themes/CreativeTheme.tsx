@@ -2,8 +2,8 @@
 
 import React from 'react'
 import { PortfolioThemeProps } from '@/types/portfolio'
-import { Mail, MapPin, ExternalLink, Sparkles, Code2, Briefcase } from 'lucide-react'
-import { GithubIcon, LinkedinIcon, SocialIcon } from '@/components/common/SocialIcons'
+import { Mail, MapPin, ExternalLink, Sparkles, Code2, Briefcase, GraduationCap, Award } from 'lucide-react'
+import { GithubIcon, SocialIcon } from '@/components/common/SocialIcons'
 
 export function CreativeTheme({ portfolio }: PortfolioThemeProps) {
   const accentColor = portfolio.themeConfig?.primaryColor || '#8b5cf6'
@@ -78,6 +78,52 @@ export function CreativeTheme({ portfolio }: PortfolioThemeProps) {
 
       {/* Main Grid Content */}
       <main className="relative z-10 max-w-5xl mx-auto px-6 pb-24 space-y-16">
+        {/* Work Experience */}
+        {portfolio.experiences.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-10">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight text-white">Experience</h2>
+            </div>
+
+            <div className="space-y-6">
+              {portfolio.experiences.map((exp, idx) => (
+                <div
+                  key={idx}
+                  className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md hover:border-slate-700 transition-all"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
+                    <div>
+                      <h3 className="text-xl font-bold text-white">{exp.role}</h3>
+                      <p className="text-purple-400 font-medium">{exp.company}</p>
+                    </div>
+                    <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 w-fit">
+                      {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
+                    </span>
+                  </div>
+
+                  {exp.description && (
+                    <p className="text-slate-400 text-sm mt-3 leading-relaxed">{exp.description}</p>
+                  )}
+
+                  {exp.highlights && exp.highlights.length > 0 && (
+                    <ul className="mt-4 space-y-2">
+                      {exp.highlights.map((h, hIdx) => (
+                        <li key={hIdx} className="text-sm text-slate-300 flex items-start gap-2">
+                          <span className="text-purple-400 mt-1">✦</span>
+                          <span>{h}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Projects Showcase */}
         {portfolio.projects.length > 0 && (
           <section>
@@ -144,52 +190,6 @@ export function CreativeTheme({ portfolio }: PortfolioThemeProps) {
           </section>
         )}
 
-        {/* Work Experience */}
-        {portfolio.experiences.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-10">
-              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                <Briefcase className="w-6 h-6" />
-              </div>
-              <h2 className="text-3xl font-bold tracking-tight text-white">Experience</h2>
-            </div>
-
-            <div className="space-y-6">
-              {portfolio.experiences.map((exp, idx) => (
-                <div
-                  key={idx}
-                  className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md hover:border-slate-700 transition-all"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-3">
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{exp.role}</h3>
-                      <p className="text-purple-400 font-medium">{exp.company}</p>
-                    </div>
-                    <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-800 text-slate-300 w-fit">
-                      {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
-                    </span>
-                  </div>
-
-                  {exp.description && (
-                    <p className="text-slate-400 text-sm mt-3 leading-relaxed">{exp.description}</p>
-                  )}
-
-                  {exp.highlights && exp.highlights.length > 0 && (
-                    <ul className="mt-4 space-y-2">
-                      {exp.highlights.map((h, hIdx) => (
-                        <li key={hIdx} className="text-sm text-slate-300 flex items-start gap-2">
-                          <span className="text-purple-400 mt-1">✦</span>
-                          <span>{h}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Skills Pills */}
         {portfolio.skills.length > 0 && (
           <section>
@@ -202,6 +202,58 @@ export function CreativeTheme({ portfolio }: PortfolioThemeProps) {
                 >
                   {skill.name}
                 </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Education Section */}
+        {portfolio.education.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-white">Education</h2>
+            </div>
+            <div className="space-y-4">
+              {portfolio.education.map((edu, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex justify-between items-center"
+                >
+                  <div>
+                    <h3 className="text-lg font-bold text-white">{edu.institution}</h3>
+                    <p className="text-sm text-purple-400">{edu.degree} {edu.field ? `in ${edu.field}` : ''}</p>
+                  </div>
+                  <span className="text-xs font-mono text-slate-400">{edu.startDate} {edu.endDate ? `- ${edu.endDate}` : ''}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Certifications Section */}
+        {portfolio.certifications && portfolio.certifications.length > 0 && (
+          <section>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                <Award className="w-6 h-6" />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-white">Certifications & Honors</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {portfolio.certifications.map((cert, idx) => (
+                <div
+                  key={idx}
+                  className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 flex justify-between items-center"
+                >
+                  <div>
+                    <h3 className="text-base font-bold text-white">{cert.title}</h3>
+                    {cert.issuer && <p className="text-xs text-purple-400 mt-0.5">{cert.issuer}</p>}
+                  </div>
+                  {cert.issueDate && <span className="text-xs font-mono text-slate-400">{cert.issueDate}</span>}
+                </div>
               ))}
             </div>
           </section>

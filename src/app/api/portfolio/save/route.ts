@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       skills,
       projects,
       certifications,
+      customSections,
     } = body
 
     if (!slug || !fullName) {
@@ -203,6 +204,21 @@ export async function POST(request: NextRequest) {
             issuer: cert.issuer || '',
             issueDate: cert.issueDate || '',
             credentialUrl: cert.credentialUrl || '',
+          })),
+        })
+      }
+    }
+
+    // Update Custom Sections relation
+    if (Array.isArray(customSections)) {
+      await prisma.customSection.deleteMany({ where: { portfolioId: portfolio.id } })
+      if (customSections.length > 0) {
+        await prisma.customSection.createMany({
+          data: customSections.map((sec: any, order: number) => ({
+            portfolioId: portfolio.id,
+            title: sec.title || 'Custom Section',
+            content: sec.content || [],
+            order,
           })),
         })
       }
