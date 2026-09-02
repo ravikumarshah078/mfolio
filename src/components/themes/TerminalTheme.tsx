@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { PortfolioThemeProps } from '@/types/portfolio'
-import { Terminal, Copy, Check, ExternalLink, Mail, MapPin, Award, GraduationCap } from 'lucide-react'
+import { Terminal, Copy, Check, ExternalLink, Mail, MapPin } from 'lucide-react'
 import { SocialIcon } from '@/components/common/SocialIcons'
 
 export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
@@ -10,7 +10,10 @@ export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'exp' | 'projects' | 'skills' | 'edu' | 'certs'>('all')
 
   const copySlug = () => {
-    navigator.clipboard.writeText(window.location.href)
+    const publicUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/${portfolio.slug}`
+      : `/${portfolio.slug}`
+    navigator.clipboard.writeText(publicUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -34,6 +37,7 @@ export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
           <button
             onClick={copySlug}
             className="text-xs text-neutral-400 hover:text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 border border-neutral-700 transition-colors cursor-pointer"
+            title={`Copy ${portfolio.slug} Public Portfolio URL`}
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? 'Copied!' : 'Copy URL'}</span>
