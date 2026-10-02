@@ -239,6 +239,28 @@ export function ExecutiveTheme({ portfolio }: PortfolioThemeProps) {
               </div>
             </section>
           )}
+
+          {/* Dynamic Custom Sections */}
+          {portfolio.customSections && portfolio.customSections.length > 0 && (
+            <section className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+              {portfolio.customSections.map((sec, sIdx) => (
+                <div key={sIdx} className="space-y-2">
+                  <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">{sec.title}</h2>
+                  <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                    {Array.isArray(sec.content) ? (
+                      <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside">
+                        {sec.content.map((item: any, iIdx: number) => (
+                          <li key={iIdx}>{typeof item === 'string' ? item : item.title || JSON.stringify(item)}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-700 dark:text-slate-300">{sec.content}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
         </main>
       </div>
     </div>

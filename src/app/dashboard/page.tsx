@@ -155,7 +155,7 @@ function DashboardContent() {
     ],
   })
 
-  // Check user session & load saved state from localStorage/DB
+  // Check user session & load saved state from DB / localStorage
   useEffect(() => {
     async function loadSession() {
       try {
@@ -164,23 +164,35 @@ function DashboardContent() {
         if (user?.email) {
           setUserEmail(user.email)
         }
+
+        // Try auto-loading portfolio from database
+        const fetchUrl = urlSlug && urlSlug !== 'demo' ? `/api/portfolio/get?slug=${urlSlug}` : '/api/portfolio/get'
+        const res = await fetch(fetchUrl)
+        if (res.ok) {
+          const json = await res.json()
+          if (json.success && json.portfolio) {
+            setPortfolio(json.portfolio)
+            localStorage.setItem('mfolio_current_data', JSON.stringify(json.portfolio))
+            return
+          }
+        }
       } catch (e) {
-        console.error('Error fetching user session:', e)
+        console.error('Error fetching user session or portfolio:', e)
+      }
+
+      const saved = localStorage.getItem('mfolio_current_data')
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved)
+          setPortfolio((prev) => ({ ...prev, ...parsed }))
+        } catch (err) {
+          console.error('Failed parsing cached portfolio data:', err)
+        }
       }
     }
 
     loadSession()
-
-    const saved = localStorage.getItem('mfolio_current_data')
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setPortfolio((prev) => ({ ...prev, ...parsed }))
-      } catch (err) {
-        console.error('Failed parsing cached portfolio data:', err)
-      }
-    }
-  }, [])
+  }, [urlSlug])
 
   const handleLogout = async () => {
     try {
@@ -347,6 +359,57 @@ function DashboardContent() {
       ...portfolio,
       projects: portfolio.projects.filter((_, i) => i !== index),
     })
+  }
+
+  // Education handlers
+  const addEducation = () => {
+    setPortfolio({
+      ...portfolio,
+      education: [
+        ...portfolio.education,
+        {
+          institution: 'University / Institute',
+          degree: 'Bachelor of Science',
+          field: 'Computer Science',
+          startDate: '2020',
+          endDate: '2024',
+        },
+      ],
+    })
+  }
+
+  const updateEducation = (index: number, field: string, value: any) => {
+    const updated = [...portfolio.education]
+    updated[index] = { ...updated[index], [field]: value }
+    setPortfolio({ ...portfolio, education: updated })
+  }
+
+  const removeEducation = (index: number) => {
+    setPortfolio({
+      ...portfolio,
+      education: portfolio.education.filter((_, i) => i !== index),
+    })
+  }
+
+  // Social Links helper
+  const getSocialUrl = (platform: string) => {
+    const link = (portfolio.socialLinks || []).find((l) => l.platform.toLowerCase() === platform.toLowerCase())
+    return link ? link.url : ''
+  }
+
+  const updateSocialUrl = (platform: string, url: string) => {
+    const links = [...(portfolio.socialLinks || [])]
+    const idx = links.findIndex((l) => l.platform.toLowerCase() === platform.toLowerCase())
+    if (idx >= 0) {
+      if (!url.trim()) {
+        links.splice(idx, 1)
+      } else {
+        links[idx] = { ...links[idx], url }
+      }
+    } else if (url.trim()) {
+      links.push({ platform, url })
+    }
+    setPortfolio({ ...portfolio, socialLinks: links })
   }
 
   // Skill handlers
@@ -601,6 +664,61 @@ function DashboardContent() {
                     />
                   </div>
                 </div>
+
+                {/* Social Links & Web Profiles */}
+                <div className="pt-4 border-t border-slate-800 space-y-4">
+                  <h3 className="text-sm font-bold uppercase text-slate-300">Social & Web Profiles</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase text-slate-400 mb-1">
+                        GitHub Profile URL
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://github.com/username"
+                        value={getSocialUrl('github')}
+                        onChange={(e) => updateSocialUrl('github', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase text-slate-400 mb-1">
+                        LinkedIn Profile URL
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://linkedin.com/in/username"
+                        value={getSocialUrl('linkedin')}
+                        onChange={(e) => updateSocialUrl('linkedin', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase text-slate-400 mb-1">
+                        Twitter / X URL
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://x.com/username"
+                        value={getSocialUrl('twitter')}
+                        onChange={(e) => updateSocialUrl('twitter', e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase text-slate-400 mb-1">
+                        Personal Website URL
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://mywebsite.com"
+                        value={portfolio.website || ''}
+                        onChange={(e) => setPortfolio({ ...portfolio, website: e.target.value })}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-sm focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -724,37 +842,148 @@ function DashboardContent() {
                         minRows={2}
                       />
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-semibold uppercase text-slate-400">Live Demo URL</label>
+                        <input
+                          type="text"
+                          placeholder="https://myproject.com"
+                          value={project.liveUrl || ''}
+                          onChange={(e) => updateProject(idx, 'liveUrl', e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-semibold uppercase text-slate-400">GitHub Repo URL</label>
+                        <input
+                          type="text"
+                          placeholder="https://github.com/..."
+                          value={project.githubUrl || ''}
+                          onChange={(e) => updateProject(idx, 'githubUrl', e.target.value)}
+                          className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold uppercase text-slate-400">Tech Stack (comma separated)</label>
+                      <input
+                        type="text"
+                        placeholder="React, TypeScript, Tailwind CSS"
+                        value={Array.isArray(project.techStack) ? project.techStack.join(', ') : ''}
+                        onChange={(e) => updateProject(idx, 'techStack', e.target.value.split(',').map((s: string) => s.trim()).filter(Boolean))}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Tab 4: Skills */}
+            {/* Tab 4: Skills & Education */}
             {activeTab === 'skills' && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold">Skills & Technologies</h2>
-                  <button
-                    onClick={addSkill}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Skill</span>
-                  </button>
+              <div className="space-y-8">
+                {/* Skills Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold">Skills & Technologies</h2>
+                    <button
+                      onClick={addSkill}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Skill</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {portfolio.skills.map((skill, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                      >
+                        <span>{skill.name}</span>
+                        <button onClick={() => removeSkill(idx)} className="text-slate-500 hover:text-red-400 cursor-pointer">
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {portfolio.skills.map((skill, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white"
+                {/* Education Section */}
+                <div className="pt-6 border-t border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-bold">Education</h2>
+                    <button
+                      onClick={addEducation}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white cursor-pointer"
                     >
-                      <span>{skill.name}</span>
-                      <button onClick={() => removeSkill(idx)} className="text-slate-500 hover:text-red-400 cursor-pointer">
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                      <Plus className="w-4 h-4" />
+                      <span>Add Education</span>
+                    </button>
+                  </div>
+
+                  {portfolio.education.length === 0 ? (
+                    <p className="text-slate-500 text-xs italic">No education added yet. Click &quot;Add Education&quot; above.</p>
+                  ) : (
+                    portfolio.education.map((edu, idx) => (
+                      <div key={idx} className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 relative">
+                        <button
+                          onClick={() => removeEducation(idx)}
+                          className="absolute top-4 right-4 text-slate-500 hover:text-red-400 p-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+
+                        <div className="grid grid-cols-2 gap-3 pr-8">
+                          <div>
+                            <label className="block text-[10px] font-semibold uppercase text-slate-400">Institution</label>
+                            <input
+                              type="text"
+                              value={edu.institution}
+                              onChange={(e) => updateEducation(idx, 'institution', e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold uppercase text-slate-400">Degree & Field</label>
+                            <input
+                              type="text"
+                              value={edu.degree}
+                              onChange={(e) => updateEducation(idx, 'degree', e.target.value)}
+                              placeholder="BS Computer Science"
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-semibold uppercase text-slate-400">Start Date</label>
+                            <input
+                              type="text"
+                              value={edu.startDate || ''}
+                              onChange={(e) => updateEducation(idx, 'startDate', e.target.value)}
+                              placeholder="2020"
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold uppercase text-slate-400">End Date</label>
+                            <input
+                              type="text"
+                              value={edu.endDate || ''}
+                              onChange={(e) => updateEducation(idx, 'endDate', e.target.value)}
+                              placeholder="2024"
+                              className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-xs text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}

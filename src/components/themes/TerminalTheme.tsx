@@ -241,6 +241,30 @@ export function TerminalTheme({ portfolio }: PortfolioThemeProps) {
             </div>
           )}
 
+          {/* Dynamic Custom Sections */}
+          {activeTab === 'all' && portfolio.customSections && portfolio.customSections.length > 0 && (
+            <div className="space-y-4">
+              {portfolio.customSections.map((sec, sIdx) => (
+                <div key={sIdx}>
+                  <p className="text-neutral-500 mb-2">
+                    <span className="text-emerald-500">guest@mfolio</span>:<span className="text-blue-400">~</span>$ cat {sec.title.toLowerCase().replace(/\s+/g, '_')}.txt
+                  </p>
+                  <div className="p-3 rounded bg-neutral-950/60 border border-neutral-800 text-xs text-neutral-300">
+                    {Array.isArray(sec.content) ? (
+                      <ul className="space-y-1 list-disc list-inside">
+                        {sec.content.map((item: any, iIdx: number) => (
+                          <li key={iIdx}>{typeof item === 'string' ? item : item.title || JSON.stringify(item)}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>{sec.content}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Prompt cursor footer */}
           <div className="pt-4 flex items-center gap-2 text-xs">
             <span className="text-emerald-500">guest@mfolio</span>:<span className="text-blue-400">~</span>$

@@ -28,8 +28,8 @@ export async function parseResumeWithGemini(rawText: string): Promise<ParsedResu
     return parseResumeFallback(rawText)
   }
 
-  // Active Gemini models: gemini-2.5-flash is current primary
-  const candidateModels = ['gemini-2.5-flash', 'gemini-1.5-pro-latest', 'gemini-pro']
+  // Active Gemini models for structured resume extraction
+  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
 
   const prompt = `
 You are an elite, highly intelligent AI resume parser.

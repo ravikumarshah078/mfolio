@@ -258,6 +258,28 @@ export function CreativeTheme({ portfolio }: PortfolioThemeProps) {
             </div>
           </section>
         )}
+
+        {/* Dynamic Custom Sections */}
+        {portfolio.customSections && portfolio.customSections.length > 0 && (
+          <section className="space-y-8">
+            {portfolio.customSections.map((sec, sIdx) => (
+              <div key={sIdx} className="space-y-4">
+                <h2 className="text-2xl font-bold tracking-tight text-white">{sec.title}</h2>
+                <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80">
+                  {Array.isArray(sec.content) ? (
+                    <ul className="space-y-2 text-sm text-slate-300 list-disc list-inside">
+                      {sec.content.map((item: any, iIdx: number) => (
+                        <li key={iIdx}>{typeof item === 'string' ? item : item.title || JSON.stringify(item)}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-slate-300">{sec.content}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </section>
+        )}
       </main>
 
       <footer className="relative z-10 py-8 text-center text-xs text-slate-500 border-t border-slate-900">
