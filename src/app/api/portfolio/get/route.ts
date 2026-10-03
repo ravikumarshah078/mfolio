@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,18 +9,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const querySlug = searchParams.get('slug')
 
-    // 1. Check if user is authenticated via Supabase Auth
-    const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    // 1. Check if user is authenticated via JWT session
+    const sessionUser = await getSessionUser(request)
 
     let portfolioRecord = null
     let userRecord = null
 
-    if (authUser) {
+    if (sessionUser) {
       userRecord = await prisma.user.findFirst({
-        where: { id: authUser.id },
+        where: { id: sessionUser.userId },
         include: {
           portfolio: {
             include: {

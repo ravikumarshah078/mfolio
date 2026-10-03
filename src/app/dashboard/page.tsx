@@ -27,7 +27,6 @@ import {
 import { themeRegistry } from '@/components/themes/theme-registry'
 import { ThemeRenderer } from '@/components/themes/ThemeRenderer'
 import { FullPortfolioData } from '@/types/portfolio'
-import { createClient } from '@/lib/supabase/client'
 
 // Auto-Expanding Textarea Component (Grows with content, zero internal scrollbar)
 function AutoExpandingTextarea({
@@ -159,10 +158,10 @@ function DashboardContent() {
   useEffect(() => {
     async function loadSession() {
       try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user?.email) {
-          setUserEmail(user.email)
+        const authRes = await fetch('/api/auth/me')
+        const authJson = await authRes.json()
+        if (authJson.authenticated && authJson.user?.email) {
+          setUserEmail(authJson.user.email)
         }
 
         // Try auto-loading portfolio from database
@@ -196,8 +195,7 @@ function DashboardContent() {
 
   const handleLogout = async () => {
     try {
-      const supabase = createClient()
-      await supabase.auth.signOut()
+      await fetch('/api/auth/logout', { method: 'POST' })
     } catch (err) {
       console.error('Logout error:', err)
     } finally {

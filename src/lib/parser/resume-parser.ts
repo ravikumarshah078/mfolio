@@ -29,7 +29,7 @@ export async function parseResumeWithGemini(rawText: string): Promise<ParsedResu
   }
 
   // Active Gemini models for structured resume extraction
-  const candidateModels = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
+  const candidateModels = ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-1.5-flash-latest', 'gemini-1.5-pro-latest']
 
   const prompt = `
 You are an elite, highly intelligent AI resume parser.

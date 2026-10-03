@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Sparkles, ArrowRight, Mail, Lock, User, Loader2, CheckCircle2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 function SignupFormContent() {
   const router = useRouter()
@@ -42,37 +41,23 @@ function SignupFormContent() {
     setSuccessInfo('')
 
     try {
-      const supabase = createClient()
-      
-      // 1. Sign up user via Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            slug: slug,
-          },
-        },
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName, slug }),
       })
 
-      if (error) {
-        throw new Error(error.message)
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to create account. Please try again.')
       }
 
       // Store current target slug in localStorage for onboarding step
       localStorage.setItem('mfolio_user_slug', slug)
       localStorage.setItem('mfolio_user_name', fullName)
 
-      if (data.session) {
-        // Instant login session created (Email confirmation disabled or auto-confirmed)
-        router.push(`/onboarding?slug=${slug}`)
-      } else {
-        // Email confirmation is required by Supabase project settings
-        setSuccessInfo(
-          'Account created successfully! If email confirmation is enabled in your Supabase project, check your email inbox to confirm, or turn off "Confirm email" in Supabase Auth settings for instant login.'
-        )
-      }
+      router.push(`/onboarding?slug=${slug}`)
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to create account. Please try again.')
     } finally {

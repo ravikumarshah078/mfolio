@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getSessionUser } from '@/lib/auth/session'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,18 +35,15 @@ export async function POST(request: NextRequest) {
 
     const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '')
 
-    // Check for active Supabase Auth user session
-    const supabase = await createClient()
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser()
+    // Check for active JWT session
+    const sessionUser = await getSessionUser(request)
 
     let userId: string
     let userEmail: string
 
-    if (authUser) {
-      userId = authUser.id
-      userEmail = authUser.email || contactEmail || `${cleanSlug}@mfolio.app`
+    if (sessionUser) {
+      userId = sessionUser.userId
+      userEmail = sessionUser.email || contactEmail || `${cleanSlug}@mfolio.app`
     } else {
       userEmail = contactEmail || `${cleanSlug}@mfolio.app`
       const existingUserBySlug = await prisma.user.findUnique({ where: { slug: cleanSlug } })

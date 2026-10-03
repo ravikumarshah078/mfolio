@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Sparkles, Upload, FileText, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
 import { themeRegistry } from '@/components/themes/theme-registry'
-import { createClient } from '@/lib/supabase/client'
 
 function OnboardingContent() {
   const router = useRouter()
@@ -30,21 +29,19 @@ function OnboardingContent() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        const res = await fetch('/api/auth/me')
+        const json = await res.json()
 
-        // Fallback check from localStorage for MVP dev mode
         const localSlug = localStorage.getItem('mfolio_user_slug') || paramSlug
         const localName = localStorage.getItem('mfolio_user_name') || ''
 
-        if (user) {
-          setFullName(user.user_metadata?.full_name || localName || 'Portfolio Owner')
-          setSlug(user.user_metadata?.slug || localSlug || 'my-portfolio')
+        if (json.authenticated && json.user) {
+          setFullName(json.user.name || localName || 'Portfolio Owner')
+          setSlug(json.user.slug || localSlug || 'my-portfolio')
         } else if (localSlug) {
           setSlug(localSlug)
           setFullName(localName || 'Portfolio Owner')
         } else {
-          // No user session or claimed slug -> redirect directly to /signup!
           router.push('/signup')
           return
         }

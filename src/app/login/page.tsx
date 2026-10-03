@@ -4,7 +4,6 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Sparkles, ArrowRight, Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -21,22 +20,19 @@ export default function LoginPage() {
     setErrorMsg('')
 
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       })
 
-      if (error) {
-        if (error.message.toLowerCase().includes('email not confirmed')) {
-          throw new Error(
-            'Your email is not confirmed yet. Please check your email inbox to confirm, OR turn off "Confirm email" in Supabase Dashboard (Auth -> Authentication -> Email) for instant login.'
-          )
-        }
-        throw new Error(error.message)
+      const json = await res.json()
+      if (!res.ok) {
+        throw new Error(json.error || 'Invalid email or password.')
       }
 
-      router.push('/dashboard')
+      const targetSlug = json.user?.slug ? `?slug=${json.user.slug}` : ''
+      router.push(`/dashboard${targetSlug}`)
     } catch (err: any) {
       setErrorMsg(err.message || 'Invalid email or password.')
     } finally {
