@@ -104,10 +104,13 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-white transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
+            className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed font-bold text-white transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 text-sm"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Logging In...</span>
+              </>
             ) : (
               <>
                 <span>Log In</span>

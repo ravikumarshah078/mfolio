@@ -18,24 +18,30 @@ services:
       timeout: 5s
       retries: 5
 
-  # Full-Stack Next.js Application Container
+  # Full-Stack Next.js Application Container (Dev mode with Live Hot-Reloading)
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: dev
     container_name: mfolio-app
     restart: always
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mfolio?schema=public
       - JWT_SECRET=mfolio-super-secret-jwt-key-2026-production
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - WATCHPACK_POLLING=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "npx prisma db push && node server.js"
+    command: sh -c "npx prisma db push && npm run dev"
 
 volumes:
   postgres_data:

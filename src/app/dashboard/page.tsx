@@ -82,6 +82,7 @@ function DashboardContent() {
   const [savedSuccess, setSavedSuccess] = useState(false)
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   // Re-upload state
   const [reuploadFile, setReuploadFile] = useState<File | null>(null)
@@ -194,6 +195,7 @@ function DashboardContent() {
   }, [urlSlug])
 
   const handleLogout = async () => {
+    setIsLoggingOut(true)
     try {
       await fetch('/api/auth/logout', { method: 'POST' })
     } catch (err) {
@@ -203,6 +205,7 @@ function DashboardContent() {
       localStorage.removeItem('mfolio_current_slug')
       localStorage.removeItem('mfolio_current_data')
       router.push('/login')
+      setIsLoggingOut(false)
     }
   }
 
@@ -553,11 +556,16 @@ function DashboardContent() {
           {/* Log Out Button */}
           <button
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 hover:bg-red-950/50 border border-slate-800 hover:border-red-800/80 text-xs font-semibold text-slate-300 hover:text-red-400 transition-all cursor-pointer ml-1"
+            disabled={isLoggingOut}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-950 hover:bg-red-950/50 border border-slate-800 hover:border-red-800/80 text-xs font-semibold text-slate-300 hover:text-red-400 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ml-1"
             title={userEmail ? `Logged in as ${userEmail}` : 'Log Out'}
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Log Out</span>
+            {isLoggingOut ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
+            ) : (
+              <LogOut className="w-3.5 h-3.5" />
+            )}
+            <span className="hidden sm:inline">{isLoggingOut ? 'Logging Out...' : 'Log Out'}</span>
           </button>
         </div>
       </header>
@@ -1133,10 +1141,20 @@ function DashboardContent() {
                     <p>{reparseSuccessMsg}</p>
                     <button
                       onClick={handleSave}
-                      className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs cursor-pointer"
+                      disabled={isSaving}
+                      className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-xs cursor-pointer transition-all shadow-md"
                     >
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Save & Publish Changes Now</span>
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                          <span>Saving Portfolio...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-3.5 h-3.5" />
+                          <span>Save & Publish Changes Now</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
