@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   Sparkles,
@@ -16,7 +17,35 @@ import { ThemeRenderer } from '@/components/themes/ThemeRenderer'
 import { FullPortfolioData } from '@/types/portfolio'
 
 export default function LandingPage() {
+  const router = useRouter()
   const [demoTheme, setDemoTheme] = useState('minimal')
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [userSlug, setUserSlug] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/auth/me')
+        const json = await res.json()
+        if (json.authenticated && json.user) {
+          setIsLoggedIn(true)
+          setUserSlug(json.user.slug || null)
+        }
+      } catch (e) {
+        // Not logged in
+      }
+    }
+    checkAuth()
+  }, [])
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (isLoggedIn) {
+      router.push(`/dashboard${userSlug ? `?slug=${userSlug}` : ''}`)
+    } else {
+      router.push('/')
+    }
+  }
 
   const samplePortfolio: FullPortfolioData = {
     slug: 'alex-morgan',
@@ -67,27 +96,39 @@ export default function LandingPage() {
 
       {/* Navigation Bar */}
       <nav className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between relative z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
+        <a href="/" onClick={handleLogoClick} className="flex items-center gap-2.5 cursor-pointer group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 group-hover:brightness-110 flex items-center justify-center shadow-lg shadow-blue-500/25 transition-all">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <span className="font-extrabold text-xl tracking-tight">mfolio</span>
-        </div>
+        </a>
 
         <div className="flex items-center gap-4">
-          <Link
-            href="/login"
-            className="text-xs font-semibold text-slate-300 hover:text-white transition-colors"
-          >
-            Log In
-          </Link>
-          <Link
-            href="/signup"
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-xs text-white transition-all shadow-lg shadow-blue-500/25 flex items-center gap-2"
-          >
-            <span>Get Started</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href={`/dashboard${userSlug ? `?slug=${userSlug}` : ''}`}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-xs text-white transition-all shadow-lg shadow-blue-500/25 flex items-center gap-2"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-xs font-semibold text-slate-300 hover:text-white transition-colors"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold text-xs text-white transition-all shadow-lg shadow-blue-500/25 flex items-center gap-2"
+              >
+                <span>Get Started</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          )}
         </div>
       </nav>
 

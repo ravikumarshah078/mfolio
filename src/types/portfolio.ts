@@ -69,6 +69,12 @@ export interface ThemeConfig {
   customCss?: string
 }
 
+export interface SeoConfig {
+  metaTitle?: string
+  metaDescription?: string
+  ogImageUrl?: string
+}
+
 export interface FullPortfolioData {
   id?: string
   userId?: string
@@ -85,6 +91,7 @@ export interface FullPortfolioData {
   socialLinks?: SocialLink[] | null
   themeId: string
   themeConfig?: ThemeConfig | null
+  seoConfig?: SeoConfig | null
   isPublished?: boolean
   experiences: ExperienceItem[]
   education: EducationItem[]

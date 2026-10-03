@@ -11,6 +11,11 @@ interface ThemeRendererProps {
 export function ThemeRenderer({ portfolio }: ThemeRendererProps) {
   const themeDef = getTheme(portfolio.themeId)
   const ThemeComponent = themeDef.component
+  const fontStyle = portfolio.themeConfig?.fontFamily ? { fontFamily: portfolio.themeConfig.fontFamily } : {}
 
-  return <ThemeComponent portfolio={portfolio} />
+  return (
+    <div style={fontStyle} className="transition-all duration-300">
+      <ThemeComponent portfolio={portfolio} />
+    </div>
+  )
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Sparkles, Upload, FileText, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
 import { themeRegistry } from '@/components/themes/theme-registry'
 
@@ -176,12 +177,12 @@ function OnboardingContent() {
     <div className="min-h-screen bg-slate-950 text-white selection:bg-blue-500 selection:text-white flex flex-col justify-between p-6 md:p-12 relative overflow-hidden">
       {/* Header */}
       <div className="max-w-4xl mx-auto w-full flex items-center justify-between">
-        <div className="flex items-center gap-2">
+        <Link href={`/dashboard${slug ? `?slug=${slug}` : ''}`} className="flex items-center gap-2 group">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-bold tracking-tight">mfolio</span>
-        </div>
+        </Link>
         <div className="flex items-center gap-2 text-xs font-mono bg-slate-900 px-3 py-1.5 rounded-full border border-slate-800 text-slate-300">
           <span>Claimed:</span>
           <span className="text-blue-400 font-bold">/{slug}</span>
